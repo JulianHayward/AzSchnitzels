@@ -21,7 +21,6 @@ $counterBatch = [PSCustomObject] @{ Value = 0 }
 $batchSize = 3 #max=1000
 Write-Host "Subscriptions Batch size: $batchSize"
 
-$resultsCollected = 0
 $subscriptionsBatch = $relevantSubscriptions | Group-Object -Property { [math]::Floor($counterBatch.Value++ / $batchSize) }
 $batchCnt = 0
 foreach ($batch in $subscriptionsBatch) { 
@@ -47,10 +46,8 @@ foreach ($batch in $subscriptionsBatch) {
         Write-Host "  Batch #$($batchCnt); POST #$($iteration)"
         $invoke = Invoke-AzRestMethod -Method $method -Payload $payload -Path $path
         $result = $invoke.Content | ConvertFrom-Json
-        Write-Host "  Batch #$($batchCnt); POST #$($iteration) Returned records: $($result.'count')"
-        $resultsCollected = $resultsCollected + $result.Count
+        Write-Host "  Batch #$($batchCnt); POST #$($iteration) Returned records: $($result.'count')" -ForegroundColor Green
         $null = $data.AddRange($result.data)
-        Write-Host "  Batch #$($batchCnt); POST #$($iteration) Status: total collected records: $($resultsCollected)"
         Write-Host "  Batch #$($batchCnt); POST #$($iteration) Array items (total): $($data.Count)" -ForegroundColor Blue
         if ($result.'$skipToken') {
             Write-Host "  Batch #$($batchCnt); POST #$($iteration) SkipToken present ($($result.'$skipToken'))" -ForegroundColor Cyan
