@@ -28,7 +28,7 @@ foreach ($batch in $subscriptionsBatch) {
 
     $startBatch = get-date
     $batchCnt++
-    Write-Host " processing Batch #$batchCnt/$(($subscriptionsBatch | Measure-Object).Count) ($(($batch.Group | Measure-Object).Count) Subscriptions)" -ForegroundColor Yellow
+    Write-Host " processing Batch #$batchCnt/$(($subscriptionsBatch | Measure-Object).Count) ($(($batch.Group).Count) Subscriptions)" -ForegroundColor Yellow
     $subscriptions = '"{0}"' -f ($batch.Group -join '","')
 
     $path = "/providers/Microsoft.ResourceGraph/resources?api-version=2021-03-01"
