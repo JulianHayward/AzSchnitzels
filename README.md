@@ -1,6 +1,5 @@
-[![GitHub Super-Linter](https://github.com/JulianHayward/AzSchnitzels/workflows/Lint%20Code%20Base/badge.svg)](https://github.com/marketplace/actions/super-linter)
-
 # AzSchnitzels
+[![GitHub Super-Linter](https://github.com/JulianHayward/AzSchnitzels/workflows/Lint%20Code%20Base/badge.svg)](https://github.com/marketplace/actions/super-linter)
 
 ### Get API Endpoint Uri used by Azure Powershell Module / cmdlet
 [getAzCmdlet-APIEndpoint.ps1](pwsh/getAzCmdlet-APIEndpoint.ps1)
