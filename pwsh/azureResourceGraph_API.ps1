@@ -23,7 +23,7 @@ Write-Host "Subscriptions Batch size: $batchSize"
 
 $subscriptionsBatch = $relevantSubscriptions | Group-Object -Property { [math]::Floor($counterBatch.Value++ / $batchSize) }
 $batchCnt = 0
-foreach ($batch in $subscriptionsBatch) { 
+foreach ($batch in $subscriptionsBatch) {
 
     $startBatch = get-date
     $batchCnt++
