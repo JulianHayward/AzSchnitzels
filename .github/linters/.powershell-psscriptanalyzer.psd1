@@ -8,9 +8,8 @@
     #)
     #IncludeDefaultRules=${true}
     ExcludeRules = @(
-        'PSAvoidUsingWriteHost',
-    #    'MyCustomRuleName'
-    #)
+        'PSAvoidUsingWriteHost'
+    )
     #IncludeRules = @(
     #    'PSAvoidUsingWriteHost',
     #    'MyCustomRuleName'
