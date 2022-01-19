@@ -11,3 +11,8 @@
 
 ### Azure detect CodeRunPlatform (AzureDevOps, GitHubActions, GitHubCodespaces, AzureAutomation, Console)
 [detectCodeRunPlatform.ps1](pwsh/detectCodeRunPlatform.ps1)
+
+## good to know
+
+### Azure managed Resource Groups
+[managedResourceGroups.txt](info/managedResourceGroups.ps1)

@@ -1,0 +1,10 @@
+cloud-shell-storage*
+NetworkWatcherRG
+site-recovery-vault-rg*
+*-asr
+AzureBackupRG_*
+DefaultResourceGroup-*
+synapseworkspace-managedrg-*
+databricks-rg-*
+IT_*
+MC_*
