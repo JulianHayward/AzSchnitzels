@@ -1,5 +1,8 @@
 # AzSchnitzels
+
 [![GitHub Super-Linter](https://github.com/JulianHayward/AzSchnitzels/workflows/Lint%20Code%20Base/badge.svg)](https://github.com/marketplace/actions/super-linter)
+
+![Github All Releases](https://img.shields.io/github/downloads/JulianHayward/Azure-MG-Sub-Governance-Reporting/total.svg)
 
 ## PowerShell Schnitzelz
 
