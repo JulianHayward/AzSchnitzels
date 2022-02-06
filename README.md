@@ -19,4 +19,4 @@
 ## good to know
 
 ### Azure managed Resource Groups
-[managedResourceGroups.txt](info/managedResourceGroups.ps1)
+[managedResourceGroups.txt](info/managedResourceGroups.txt)
