@@ -8,3 +8,5 @@ synapseworkspace-managedrg-*
 databricks-rg-*
 IT_*
 MC_*
+
+managed-rg-* 
