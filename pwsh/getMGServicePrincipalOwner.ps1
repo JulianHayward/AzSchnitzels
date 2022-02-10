@@ -9,6 +9,8 @@ $getToken = Get-AzAccessToken -ResourceTypeName MSGraph #$getToken = Get-AzAcces
 Connect-MgGraph -AccessToken $getToken.Token
 
 $servicePrincipalId = "<objectId>" #objectId of the Enterprise Application (Azure Portal/Azure Active Directory/Enterprise Applications)
+
+#docs: https://docs.microsoft.com/en-us/powershell/module/microsoft.graph.applications/get-mgserviceprincipalowner
 $spOwnerObject = Get-MgServicePrincipalOwner -ServicePrincipalId $ServicePrincipalId
 if ($spOwnerObject) {
     $spOwnerObject.Id
