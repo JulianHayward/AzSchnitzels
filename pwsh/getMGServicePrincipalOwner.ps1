@@ -15,7 +15,7 @@ $spOwnerObject = Get-MgServicePrincipalOwner -ServicePrincipalId $ServicePrincip
 if ($spOwnerObject) {
     $spOwnerObject.Id
     $spOwnerObject.AdditionalProperties.'@odata.type'
-    $spOwnerObject.AdditionalProperties.displayName 
+    $spOwnerObject.AdditionalProperties.displayName
 }
 else {
     Write-Host "no owner"
