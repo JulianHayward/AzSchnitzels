@@ -7,6 +7,15 @@ DefaultResourceGroup-*
 synapseworkspace-managedrg-*
 databricks-rg-*
 IT_*
-MC_*
-
+MC_* 
 managed-rg-* 
+
+ResourceMover* 
+microsoft-network 
+LogAnalyticsDefaultResources 
+DynamicsDeployments 
+
+
+
+
+
