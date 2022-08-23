@@ -11,7 +11,8 @@
 [getAzAADDiagSetting_ARM.ps1](pwsh/getAzAADDiagSetting_ARM.ps1)
 
 ### Azure Resource Graph API
-[azureResourceGraph_API.ps1](pwsh/azureResourceGraph_API.ps1)
+[azureResourceGraph_API.ps1](pwsh/azureResourceGraph_API.ps1)  
+[azureResourceGraph_AzAPICall.ps1](pwsh/azureResourceGraph_AzAPICall.ps1)
 
 ### Azure detect CodeRunPlatform (AzureDevOps, GitHubActions, GitHubCodespaces, AzureAutomation, Console)
 [detectCodeRunPlatform.ps1](pwsh/detectCodeRunPlatform.ps1)
