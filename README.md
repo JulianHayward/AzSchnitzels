@@ -20,6 +20,9 @@
 ### Microsoft.Graph PowerShell module | Get ServicePrincipal Owner
 [getMGServicePrincipalOwner.ps1](pwsh/getMGServicePrincipalOwner.ps1)
 
+### Microsoft Graph - Create AppRoleAssignment
+[createAppRoleAssignment-MSGraph_API.ps1](pwsh/createAppRoleAssignment-MSGraph_API.ps1)
+
 ## good to know
 
 ### Azure managed Resource Groups
