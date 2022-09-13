@@ -13,7 +13,9 @@ managed-rg-*
 ResourceMover* 
 microsoft-network 
 LogAnalyticsDefaultResources 
-DynamicsDeployments 
+DynamicsDeployments
+
+Built-in-Identity-RG
 
 
 
