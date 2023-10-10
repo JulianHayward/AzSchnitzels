@@ -17,6 +17,8 @@ DynamicsDeployments
 
 Built-in-Identity-RG
 
+Azure Red Hat OpenShift ref:https://www.azadvertizer.net/azpolicyadvertizer/4fa4b6c0-31ca-4c0d-b10d-24b96f62a751.html) aro-*
+
 
 
 
