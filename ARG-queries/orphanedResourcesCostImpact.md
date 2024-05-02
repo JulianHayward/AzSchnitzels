@@ -7,6 +7,15 @@ resources
 | project type, subscriptionId, Resource=id, Intent='cost savings'
 ```
 
+# microsoft.compute/virtualmachines
+
+```kql
+resources
+| where type =~ 'microsoft.compute/virtualmachines'
+| where properties.extended.instanceView.powerState.code =~ 'PowerState/stopped'
+| project type, subscriptionId, Resource=id, Intent='cost savings - stopped but not deallocated VM'
+```
+
 # microsoft.network/applicationGateways
 
 ```kql
