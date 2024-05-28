@@ -1,0 +1,177 @@
+{
+  "displayName": "1234_MG_AP_PrivateEndpoint_DNSRecords_globalPrivateDNSZone",
+  "policyType": "Custom",
+  "mode": "All",
+  "description": "[1.0.0] Adding DNS Records for Private Endpoints in global private DNS Zone",
+  "metadata": {
+    "category": "1234_GOV_PrivateEndpoint"
+  },
+  "parameters": {
+    "privateDnsZoneIds": {
+      "type": "Array",
+      "metadata": {
+        "displayName": "privateDnsZoneIds",
+        "description": "The full private DNS zone resource IDs (/subscriptions/...) to which the private endpoint should be linked"
+      }
+    },
+    "privateLinkServiceConnectionIdentifier": {
+      "type": "String",
+      "metadata": {
+        "displayName": "privateLinkServiceConnectionIdentifier",
+        "description": "The identifier/groupId of the private link service connection"
+      }
+    },
+    "privateLinkServiceConnectionResourceType": {
+      "type": "String",
+      "metadata": {
+        "displayName": "privateLinkServiceConnectionResourceType",
+        "description": "The resource type (e.g. 'Microsoft.Storage/StorageAccounts') of the private link service connection"
+      },
+      "defaultValue": "/"
+    },
+    "regionNameToRegionCodeMapping": {
+      "type": "object",
+      "defaultValue": {
+        "northeurope": "ne",
+        "westeurope": "we"
+      }
+    },
+    "effect": {
+      "type": "String",
+      "metadata": {
+        "displayName": "Effect",
+        "description": "DeployIfNotExists, AuditIfNotExists or Disabled the execution of the Policy"
+      },
+      "allowedValues": [
+        "DeployIfNotExists",
+        "AuditIfNotExists",
+        "Disabled"
+      ],
+      "defaultValue": "DeployIfNotExists"
+    }
+  },
+  "policyRule": {
+    "if": {
+      "allOf": [
+        {
+          "field": "type",
+          "equals": "Microsoft.Network/privateEndpoints"
+        },
+        {
+          "field": "Microsoft.Network/privateEndpoints/privateLinkServiceConnections[*].privateLinkServiceId",
+          "contains": "[parameters('privateLinkServiceConnectionResourceType')]"
+        },
+        {
+          "count": {
+            "field": "Microsoft.Network/privateEndpoints/privateLinkServiceConnections[*].groupIds[*]",
+            "where": {
+              "field": "Microsoft.Network/privateEndpoints/privateLinkServiceConnections[*].groupIds[*]",
+              "equals": "[parameters('privateLinkServiceConnectionIdentifier')]"
+            }
+          },
+          "greaterOrEquals": 1
+        }
+      ]
+    },
+    "then": {
+      "effect": "[parameters('effect')]",
+      "details": {
+        "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+        "roleDefinitionIds": [
+          "/providers/microsoft.authorization/roleDefinitions/4d97b98b-1d4f-4787-a291-c67834d212e7",
+          "/providers/microsoft.authorization/roleDefinitions/acdd72a7-3385-48ef-bd42-f606fba81ae7"
+        ],
+        "EvaluationDelay": "AfterProvisioningSuccess",
+        "deployment": {
+          "properties": {
+            "mode": "incremental",
+            "template": {
+              "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+              "contentVersion": "1.0.0.0",
+              "parameters": {
+                "privateDnsZoneIds": {
+                  "type": "Array"
+                },
+                "privateEndpointName": {
+                  "type": "string"
+                },
+                "location": {
+                  "type": "string"
+                },
+                "regionNameToRegionCodeMapping": {
+                  "type": "object"
+                },
+                "privateLinkServiceConnectionResourceType": {
+                  "type": "string"
+                },
+                "privateLinkServiceId": {
+                  "type": "Array"
+                }
+              },
+              "resources": [
+                {
+                  "condition": "[equals(parameters('privateLinkServiceConnectionResourceType'), 'Microsoft.CognitiveServices/accounts')]",
+                  "name": "[concat(parameters('privateEndpointName'), '/deployedByPolicy')]",
+                  "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+                  "apiVersion": "2020-03-01",
+                  "location": "[parameters('location')]",
+                  "properties": {
+                    "privateDnsZoneConfigs": [
+                      {
+                        "name": "[concat('CognitiveServices', '-', parameters('privateEndpointName'))]",
+                        "properties": {
+                          "privateDnsZoneId": "[if(equals(if(equals(parameters('privateLinkServiceConnectionResourceType'), 'Microsoft.CognitiveServices/accounts'), if(equals(reference(parameters('privateLinkServiceId')[0], '2022-12-01', 'Full').kind, 'OpenAI'), 'true', 'false'), 'false'), 'true'), replace(parameters('privateDnsZoneIds')[0], last(split(parameters('privateDnsZoneIds')[0], '/')), 'privatelink.openai.azure.com'), parameters('privateDnsZoneIds')[0])]"
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "condition": "[not(equals(parameters('privateLinkServiceConnectionResourceType'), 'Microsoft.CognitiveServices/accounts'))]",
+                  "name": "[concat(parameters('privateEndpointName'), '/deployedByPolicy')]",
+                  "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+                  "apiVersion": "2020-03-01",
+                  "location": "[parameters('location')]",
+                  "properties": {
+                    "copy": [
+                      {
+                        "name": "privateDnsZoneConfigs",
+                        "count": "[length(parameters('privateDnsZoneIds'))]",
+                        "input": {
+                          "name": "[concat(last(split(replace(replace(parameters('privateDnsZoneIds')[copyIndex('privateDnsZoneConfigs')], '{regionName}', parameters('location')), '{regionCode}', parameters('regionNameToRegionCodeMapping')[tolower(parameters('location'))]), '/')), '-', parameters('privateEndpointName'))]",
+                          "properties": {
+                            "privateDnsZoneId": "[replace(replace(parameters('privateDnsZoneIds')[copyIndex('privateDnsZoneConfigs')], '{regionName}', parameters('location')), '{regionCode}', parameters('regionNameToRegionCodeMapping')[tolower(parameters('location'))])]"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "parameters": {
+              "privateDnsZoneIds": {
+                "value": "[parameters('privateDnsZoneIds')]"
+              },
+              "privateEndpointName": {
+                "value": "[field('name')]"
+              },
+              "location": {
+                "value": "[field('location')]"
+              },
+              "regionNameToRegionCodeMapping": {
+                "value": "[parameters('regionNameToRegionCodeMapping')]"
+              },
+              "privateLinkServiceConnectionResourceType": {
+                "value": "[parameters('privateLinkServiceConnectionResourceType')]"
+              },
+              "privateLinkServiceId": {
+                "value": "[field('Microsoft.Network/privateEndpoints/privateLinkServiceConnections[*].privateLinkServiceId')]"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
