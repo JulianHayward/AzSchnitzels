@@ -1,0 +1,87 @@
+securityresources        
+| where type == "microsoft.security/assessments" or type == "microsoft.security/assessments/governanceassignments"        
+| where subscriptionId in ("40682ac9-4af9-4fd1-b06f-a4542337fdf3")        
+| extend isAssessment = iff(type == "microsoft.security/assessments", 1, 0)        
+| extend isAssignment = iff(type == "microsoft.security/assessments/governanceassignments", 1, 0)        
+| extend assessmentId = (// AssessmentsQueryBuilder.columnDefinitions.id                
+iff(type == "microsoft.security/assessments", id, dynamic(null)))        
+| extend assignedResourceId = (// GovernanceAssignmentsQueryBuilder.columnDefinitions.assignedResourceId                
+iff(type == "microsoft.security/assessments/governanceassignments", tostring(properties.assignedResourceId), dynamic(null)))        
+| extend idForSummarize = iff(isAssessment == 1, tolower(assessmentId), tolower(assignedResourceId))        
+| extend assessmentKey = (// AssessmentsQueryBuilder.columnDefinitions.assessmentKey                
+iff(type == "microsoft.security/assessments", name, dynamic(null)))        
+| extend assessmentDisplayName = (// AssessmentsQueryBuilder.columnDefinitions.displayName                
+iff(type == "microsoft.security/assessments", tostring(properties.displayName), dynamic(null)))        
+| extend displayName = assessmentDisplayName        
+| project-away assessmentDisplayName        
+| extend statusCode = (// AssessmentsQueryBuilder.columnDefinitions.statusCode                
+iff(type == "microsoft.security/assessments", tostring(properties.status.code), dynamic(null)))        
+| extend isUnhealthy = iff(statusCode == "Unhealthy", 1, 0)        
+| extend maturityLevel = (// AssessmentsQueryBuilder.columnDefinitions.maturityLevel                
+iff(type == "microsoft.security/assessments", case(                    isnull(properties.metadata.preview), "GA",                    tobool(properties.metadata.preview), "Preview",                    "GA"), dynamic(null)))        
+| extend source = (// AssessmentsQueryBuilder.columnDefinitions.source               
+ iff(type == "microsoft.security/assessments", trim(' ', tolower(tostring(properties.resourceDetails.Source))), dynamic(null)))        
+| extend resourceId = (// AssessmentsQueryBuilder.columnDefinitions.resourceId                
+iff(type == "microsoft.security/assessments", trim(" ", tolower(tostring(case(source =~ "azure", properties.resourceDetails.Id,            (// AssessmentsQueryBuilder.predicates.newAwsAssessmentIndicator           
+ (type == "microsoft.security/assessments" and (source =~ "aws" and isnotempty(tostring(properties.resourceDetails.ConnectorId))))), properties.resourceDetails.Id,            (// AssessmentsQueryBuilder.predicates.newGcpAssessmentIndicator            
+ (type == "microsoft.security/assessments" and (source =~ "gcp" and isnotempty(tostring(properties.resourceDetails.ConnectorId))))), properties.resourceDetails.Id,            source =~ "aws", properties.resourceDetails.AzureResourceId,            source =~ "gcp", properties.resourceDetails.AzureResourceId,            extract("^(?i)(.+)/providers/Microsoft.Security/assessments/.+$",1,id)            )))), dynamic(null)))        
+| extend regexResourceId = (// AssessmentsQueryBuilder.columnDefinitions.regexResourceId                
+iff(type == "microsoft.security/assessments", extract_all(@"/providers/([^/]+)(?:/([^/]+)/[^/]+(?:/([^/]+)/[^/]+)?)?/([^/]+)/[^/]+(?:/([^/]+)/[^/]+(?:/([^/]+)/[^/]+)?)?$", resourceId), dynamic(null)))        
+| extend regexResourceType = (// AssessmentsQueryBuilder.columnDefinitions.regexResourceType                
+iff(type == "microsoft.security/assessments", regexResourceId[0], dynamic(null)))        
+| extend providerName = (// AssessmentsQueryBuilder.columnDefinitions.providerName                
+iff(type == "microsoft.security/assessments", regexResourceType[0], dynamic(null)))        
+| extend mainType = (// AssessmentsQueryBuilder.columnDefinitions.mainType                
+iff(type == "microsoft.security/assessments", case(regexResourceType[1] !~ "", strcat("/",regexResourceType[1]), ""), dynamic(null)))       
+ | extend extendedType = (// AssessmentsQueryBuilder.columnDefinitions.extendedType                
+ iff(type == "microsoft.security/assessments", case(regexResourceType[2] !~ "", strcat("/",regexResourceType[2]), ""), dynamic(null)))        
+ | extend resourceType = (// AssessmentsQueryBuilder.columnDefinitions.resourceType                
+ iff(type == "microsoft.security/assessments", case(regexResourceType[3] !~ "", strcat("/",regexResourceType[3]), ""), dynamic(null)))        | extend additionalType = (// AssessmentsQueryBuilder.columnDefinitions.secondResourceType                
+ iff(type == "microsoft.security/assessments", case(regexResourceType[4] !~ "", strcat("/",regexResourceType[4]), ""), dynamic(null)))       
+ | extend typeFullPath = (// AssessmentsQueryBuilder.columnDefinitions.typeFullPath                
+ iff(type == "microsoft.security/assessments", tolower(properties.resourceDetails.ResourceType), dynamic(null)))        
+ | extend environment = (// AssessmentsQueryBuilder.columnDefinitions.environment                
+ iff(type == "microsoft.security/assessments", case(                    source == "azure" or source == "onpremise", "Azure",                    source == "aws", "AWS",                    source == "gcp", "GCP",                    source == "github", "GitHub",                    source == "gitlab", "GitLab",                    source == "azuredevops", "AzureDevOps",                    source == "dockerhub", "DockerHub",                    source == "jfrog", "JFrog",                    dynamic(null)                ), dynamic(null)))
+ | where ((environment =~ "AWS" or environment =~ "Azure" or environment =~ "AzureDevOps" or environment =~ "DockerHub" or environment =~ "GCP" or environment =~ "GitHub" or environment =~ "GitLab" or environment =~ "JFrog")) or (isAssessment == 0)        
+ | extend owner = (// GovernanceAssignmentsQueryBuilder.columnDefinitions.owner                
+ iff(type == "microsoft.security/assessments/governanceassignments", iff(isempty(tostring(properties.owner)), "unspecified", tostring(properties.owner)), dynamic(null)))        | extend dueDate = (// GovernanceAssignmentsQueryBuilder.columnDefinitions.remediationDueDate                
+ iff(type == "microsoft.security/assessments/governanceassignments", todatetime(properties.remediationDueDate), dynamic(null)))        
+ | extend eta = (// GovernanceAssignmentsQueryBuilder.columnDefinitions.remediationEta                
+ iff(type == "microsoft.security/assessments/governanceassignments", todatetime(properties.remediationEta.eta), dynamic(null)))       
+  | extend govCompletionStatus = (// GovernanceAssignmentsQueryBuilder.columnDefinitions.completionStatus                
+  iff(type == "microsoft.security/assessments/governanceassignments", case(                            isnull(todatetime(properties.remediationDueDate)), "NoDueDate",                            // We round up the current date time to be the start of the day, as the due date is inclusive                            
+  todatetime(properties.remediationDueDate) >= bin(now(), 1d), "OnTime",                            "Overdue"                        ), dynamic(null)))        
+  | extend isGracePeriod = (// GovernanceAssignmentsQueryBuilder.columnDefinitions.isGracePeriod                
+  iff(type == "microsoft.security/assessments/governanceassignments", iff(govCompletionStatus == "OnTime", tobool(properties.isGracePeriod), false), dynamic(null)))        
+  | summarize                     source = anyif(source, isAssessment == 1),                    assessmentKey = anyif(assessmentKey, isAssessment == 1),                    resourceId = anyif(resourceId, isAssessment == 1),                    displayName = anyif(displayName, isAssessment == 1),                    statusCode = anyif(statusCode, isAssessment == 1),                    maturityLevel = anyif(maturityLevel, isAssessment == 1),                    environment = anyif(environment, isAssessment == 1),                    isUnhealthy = anyif(isUnhealthy, isAssessment == 1),                    typeFullPath = anyif(typeFullPath, isAssessment == 1),                    owner = anyif(owner, isAssignment == 1),                    dueDate = anyif(dueDate, isAssignment == 1),                    eta = anyif(eta, isAssignment == 1),                    isGracePeriod = anyif(isGracePeriod, isAssignment == 1),                    govCompletionStatus = anyif(govCompletionStatus, isAssignment == 1),                    // starting CSV columns                
+  assessmentProperties = anyif(properties, isAssessment == 1),                resourceName = anyif((// AssessmentsQueryBuilder.columnDefinitions.resourceName                
+  iff(type == "microsoft.security/assessments", tostring(coalesce(properties.resourceDetails.ResourceName, properties.additionalData.CloudNativeResourceName, properties.additionalData.ResourceName, properties.additionalData.resourceName, split(resourceId, '/')[-1], extract(@"(.+)/(.+)", 2, resourceId))), dynamic(null))), isAssessment == 1),                techniques = anyif((// AssessmentsQueryBuilder.columnDefinitions.techniques                
+  iff(type == "microsoft.security/assessments", properties.metadata.techniques, dynamic(null))), isAssessment == 1),                nativeCloudAccountId = anyif((// AssessmentsQueryBuilder.columnDefinitions.nativeCloudAccountId                
+  iff(type == "microsoft.security/assessments", trim(" ", tostring(case(source =~ "azure", "",                                                        ((// AssessmentsQueryBuilder.predicates.newAwsAssessmentIndicator            
+  (type == "microsoft.security/assessments" and (source =~ "aws" and isnotempty(tostring(properties.resourceDetails.ConnectorId)))))) or ((// AssessmentsQueryBuilder.predicates.newGcpAssessmentIndicator            
+  (type == "microsoft.security/assessments" and (source =~ "gcp" and isnotempty(tostring(properties.resourceDetails.ConnectorId)))))), properties.additionalData.HierarchyId,                                                        source =~ "aws", properties.resourceDetails.AccountId,                                                        source =~ "gcp", properties.resourceDetails.ProjectId,                                                        ""))), dynamic(null))) , isAssessment == 1),                assessmentId = anyif(idForSummarize, isAssessment == 1),                assessmentSubscriptionId = anyif(subscriptionId, isAssessment == 1),                description = anyif(properties.metadata.description, isAssessment == 1),                remediationSteps = anyif(properties.metadata.remediationSteps, isAssessment == 1),                resourceType = anyif(resourceType, isAssessment == 1),                //CSV data end                    
+  hasAssessmentData = sum(isAssessment) by idForSummarize        
+  | where hasAssessmentData > 0        // Replace blank owners with Unspecified        
+  | extend owner = iif(isnull(owner) == false and isempty(owner) == false, owner, "Unspecified")        
+  | extend now = now()        
+  | extend completionStatus = case(            isUnhealthy == 0, "Completed",             govCompletionStatus == "Overdue", "Overdue",            govCompletionStatus == "OnTime", "OnTime",            "Unassigned")        
+  | extend completionStatusNumber = case(            completionStatus == "Completed", 0,            completionStatus in ("Unassigned", "Unhealthy"), 1,            completionStatus == "OnTime", 2,            completionStatus == "Overdue", 3,            -1)                    // removing rows without metadata to allow join                    
+  | where isnotnull(assessmentProperties.metadata)                    // fetch last substring of resource type to match previous report                    
+  | extend assessmentResourceType = tostring(split(resourceType, "/")[-1])                    // joining secure score controls                    
+  | join kind=leftouter (
+        securityresources   
+   | where type == "microsoft.security/securescores/securescorecontrols"    
+   | extend controlName = (// SecureScoreControlsQueryBuilder.columnDefinitions.displayName                
+   iff(type == "microsoft.security/securescores/securescorecontrols", tostring(properties.displayName), dynamic(null)))   
+   | extend controlKey = tostring(name)    
+   | extend assessmentKeys = (// SecureScoreControlsQueryBuilder.columnDefinitions.assessmentKeys                
+   iff(type == "microsoft.security/securescores/securescorecontrols", extract_all("\"id\":\".*?/assessmentMetadata/([^\"]*)\"", tostring(properties.definition.properties.assessmentDefinitions)), dynamic(null)))
+   | mvexpand assessmentKeys    
+   | extend assessmentKey = tostring(assessmentKeys)    
+  | summarize controlName = max(controlName) by controlKey, assessmentKey, subscriptionId    
+  | extend packControls = pack(controlName, controlKey)    
+  | summarize controls = make_bag(packControls) by assessmentKey,subscriptionId   
+  | project controls, assessmentKey, subscriptionId                    ) on assessmentKey, $left.assessmentSubscriptionId == $right.subscriptionId
+  | extend assessmentKey = extract ("/assessments/(.*)",1,assessmentId)            
+  | where assessmentKey in ('eade5b56-eefd-444f-95c8-23f29e5d93cb','e3de1cc0-f4dd-3b34-e496-8b5381ba2d70','0876ef51-fee7-449d-ba1e-f2662c7e43c6','6ac66a74-761f-4a59-928a-d373eea3f028','58d72d9d-0310-4792-9a3b-6dd111093cdb','b1af52e4-e968-4e2b-b6d0-6736c9651f0a','56a6e81f-7413-4f72-9a1b-aaeeaa87c872','f0fb2a7e-16d5-849f-be57-86db712e9bd0','b6a28450-dd5d-4ba4-8806-245e20ef6632','e599a9fe-30e3-47c6-a173-8b4b6d9d3255','2c79b4af-f830-b61e-92b9-63dfa30f16e4','6f90a6d6-d4d6-0794-0ec1-98fa77878c2e','0354476c-a12a-4fcc-a79d-f0ab7ffffdbb','fde1c0c9-0fd2-4ecc-87b5-98956cbc1095','1ff0b4c9-ed56-4de6-be9c-d7ab39645926','26f0d5bb-1398-49be-83c5-7161c2e39d8b','96946040-1b25-4dc4-b845-4f341b3fcaab','050ac097-3dda-4d24-ab6d-82568e7a50cf','20606e75-05c4-48c0-9d97-add6daa2109a','f1f2f7dc-7bd5-18bf-c403-cbbdb7ec3d68','e0e431eb-22b3-4f34-ae0d-5ec229fc28e7','9f97e78d-88ee-a48d-abe2-5ef12954e7ea','77758c9d-8a56-5f54-6ff7-69a762ca6004','3869fbd7-5d90-84e4-37bd-d9a7f4ce9a24','ad4f3ff1-30eb-5042-16ed-27198f640b8d','52f7826a-ace7-3107-dd0d-4875853c1576','cdc78c07-02b0-4af0-1cb2-cb7c672a8b0a','78211c00-15a9-336e-17c4-0b48613dadf4','4ed62ae4-5072-f9e7-8d94-51c76c48159a','88bbc99c-e5af-ddd7-6105-6150b2bfa519','51fd8bb1-0db4-bbf1-7e2b-cfcba7eb66a6','1c5de8e1-f68d-6a17-e0d2-ec259c42768c','47bb383c-8e25-95f0-c2aa-437add1d87d3','f6b59724-4a05-aa38-33e2-25f15eecf00b','3b363842-30f5-4056-980d-3a40fa5de8b3','b12bc79e-4f12-44db-acda-571820191ddc','8c3d9ad0-3639-4686-9cd2-2b2ab2609bda','1f655fb7-63ca-4980-91a3-56dbc2b715c6','c2ab4bea-c663-3259-a4cd-03a8feb02825','972a6579-f38f-c0b9-1b4b-a5bbeba3ab5b','15be5f3c-e0a4-c0fa-fbff-8e50339b4b22','23aa9cbe-c2fb-6a2f-6c97-885a6d48c4d1','cb0acdc6-0846-fd48-debe-9905af151b6d','093c685b-56dd-13a3-8ed5-887a001837a2','7b3d4796-9400-2904-692b-4a5ede7f0a1e','22489c48-27d1-4e40-9420-4303ad9cffef','ffff0522-1e88-47fc-8382-2a80ba848f5d','a9341235-9389-42f0-a0bf-9bfb57960d44','bc303248-3d14-44c2-96a0-55f5c326b5fe','1195afff-c881-495e-9bc5-1486211ae03f','efbbd784-656d-473a-9863-ea7693bfcd2a','12018f4f-3d10-999b-e4c4-86ec25be08a1','69ad830b-d98c-b1cf-2158-9d69d38c7093','861bbc73-0a55-8d1d-efc6-e92d9e1176e0','90386950-71ca-4357-a12e-486d1679427c','e1145ab1-eb4f-43d8-911b-36ddf771d13f','87448ec1-55f6-3746-3f79-0f35beee76b4','22441184-2f7b-d4a0-e00b-4c5eaef4afc9','f2f595ec-5dc6-68b4-82ef-b63563e9c610','6c99f570-2ce7-46bc-8175-cde013df43bc','69133b6b-695a-43eb-a763-221e19556755','91387f44-7e43-4ecc-55f0-46f5adee3dd5','f19ab7d9-5ff2-f8fd-ab3b-0bf95dcb6889','c476dc48-8110-4139-91af-c8d940896b98','0cb5f317-a94b-6b80-7212-13a9cc8826af','bdac9c7b-b9b8-f572-0450-f161c430861c','13b10b36-aa99-4db6-b00c-dcf87c4761e6','f738efb8-005f-680d-3d43-b3db762d6243','67279c29-fa4c-4f09-ae59-cb1491565995','dea5192e-1bb3-101b-b70c-4646546f5e1e','c3b51c94-588b-426b-a892-24696f9e54cc','805651bc-6ecd-4c73-9b55-97a19d0582d0','483f12ed-ae23-447e-a2de-a67a10db4353','3b20e985-f71f-483b-b078-f30d73936d43','45d313c3-3fca-5040-035f-d61928366d31')
+  | order by idForSummarize
